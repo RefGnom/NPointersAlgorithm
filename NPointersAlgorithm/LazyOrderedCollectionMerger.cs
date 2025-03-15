@@ -3,20 +3,20 @@ using System.Linq;
 
 namespace NPointersAlgorithm;
 
-public class LazyOrderedCollectionsMerger<TItem, TPointer>
+public class LazyOrderedCollectionMerger<TItem, TPointer>
 {
     private readonly PriorityQueue<LazyCollectionWithPointer<TItem, TPointer>, TPointer> _orderedQueues;
-    private readonly INPointersAlgorithmSettingsProvider<TItem, TPointer> _settingsProvider;
+    private readonly ICollectionMergerFunctions<TItem, TPointer> _functions;
 
-    public LazyOrderedCollectionsMerger(
+    public LazyOrderedCollectionMerger(
         IReadOnlyCollection<IEnumerable<TItem>> collections,
-        INPointersAlgorithmSettingsProvider<TItem, TPointer> settingsProvider
+        ICollectionMergerFunctions<TItem, TPointer> functions
     )
     {
         _orderedQueues = new PriorityQueue<LazyCollectionWithPointer<TItem, TPointer>, TPointer>(collections.Count);
-        _settingsProvider = settingsProvider;
+        _functions = functions;
 
-        var enumerableWithPointers = collections.Select(x => new LazyCollectionWithPointer<TItem, TPointer>(x, settingsProvider));
+        var enumerableWithPointers = collections.Select(x => new LazyCollectionWithPointer<TItem, TPointer>(x, functions));
         foreach (var orderedQueueWithPointer in enumerableWithPointers)
         {
             if (!orderedQueueWithPointer.IsEmpty)
@@ -32,7 +32,7 @@ public class LazyOrderedCollectionsMerger<TItem, TPointer>
         {
             var collectionWithMinPointer = _orderedQueues.Dequeue();
 
-            if (!_settingsProvider.IsValid(collectionWithMinPointer.CurrentPointer))
+            if (!_functions.IsValid(collectionWithMinPointer.CurrentPointer))
             {
                 continue;
             }

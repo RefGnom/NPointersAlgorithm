@@ -5,7 +5,7 @@ namespace NPointersAlgorithm;
 
 public class LazyCollectionWithPointer<TItem, TPointer> : IDisposable
 {
-    private readonly INPointersAlgorithmSettingsProvider<TItem, TPointer> _settingsProvider;
+    private readonly ICollectionMergerFunctions<TItem, TPointer> _functions;
     private readonly IEnumerator<TItem> _enumerator;
 
     public bool IsEmpty { get; private set; }
@@ -19,16 +19,16 @@ public class LazyCollectionWithPointer<TItem, TPointer> : IDisposable
                 throw new NPointersAlgorithmException("Нельзя получить указатель пустой или законченной колекции");
             }
 
-            return _settingsProvider.CalculatePointer(_enumerator.Current);
+            return _functions.CalculatePointer(_enumerator.Current);
         }
     }
 
     public LazyCollectionWithPointer(
         IEnumerable<TItem> collection,
-        INPointersAlgorithmSettingsProvider<TItem, TPointer> settingsProvider
+        ICollectionMergerFunctions<TItem, TPointer> functions
     )
     {
-        _settingsProvider = settingsProvider;
+        _functions = functions;
         _enumerator = collection.GetEnumerator();
 
         IsEmpty = !_enumerator.MoveNext();
@@ -46,7 +46,7 @@ public class LazyCollectionWithPointer<TItem, TPointer> : IDisposable
 
         IsEmpty = !_enumerator.MoveNext();
 
-        if (!IsEmpty && !_settingsProvider.IsNoLess(CurrentPointer, previousPointer))
+        if (!IsEmpty && _functions.Compare(CurrentPointer, previousPointer) >= 0)
         {
             throw new NPointersAlgorithmException(
                 $"Исходные коллекции должны быть отсортированы по возрастанию. " +

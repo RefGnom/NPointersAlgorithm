@@ -46,7 +46,7 @@ public class LazyCollectionWithPointer<TItem, TPointer> : IDisposable
 
         IsEmpty = !_enumerator.MoveNext();
 
-        if (!IsEmpty && _functions.Compare(CurrentPointer, previousPointer) >= 0)
+        if (!IsEmpty && _functions.Compare(CurrentPointer, previousPointer) < 0)
         {
             throw new NPointersAlgorithmException(
                 $"Исходные коллекции должны быть отсортированы по возрастанию. " +

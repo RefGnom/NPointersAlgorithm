@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 
@@ -8,17 +7,9 @@ namespace NPointersAlgorithm.MergerExampleOnFiles;
 
 public static class CollectionProvider
 {
-    public static IReadOnlyCollection<IEnumerable<UserItem>> GetCollections(string path, string namePrefix, int count)
+    public static IEnumerable<UserItem> GetCollection(string path)
     {
-        return Enumerable.Range(1, count)
-            .Select(i => $"{namePrefix}_{i}")
-            .Select(n => GetCollection(path, n))
-            .ToArray();
-    }
-
-    public static IEnumerable<UserItem> GetCollection(string path, string name)
-    {
-        var fileStream = File.OpenRead(Path.Combine(path, Path.ChangeExtension(name, "txt")));
+        var fileStream = File.OpenRead(path);
         var textReader = new StreamReader(fileStream, Encoding.UTF8);
 
         while (true)

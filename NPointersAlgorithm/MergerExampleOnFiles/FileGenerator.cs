@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -8,42 +9,64 @@ namespace NPointersAlgorithm.MergerExampleOnFiles;
 
 public static class FileGenerator
 {
-    private const long stepSize = 10000;
-    private static readonly Type SerializeType = typeof(UserItem);
+    private const long stepSize = 100_000;
     private static readonly byte EndLineByte = Convert.ToByte('\n');
 
-    public static async Task GenerateFilesAsync(string path, string namePrefix, long eachFileSize, int count)
+    public static Task<string[]> GenerateFilesAsync(string path, string namePrefix, long eachFileSize, int count)
     {
         var tasks = Enumerable.Range(1, count)
             .Select(i => $"{namePrefix}_{i}")
-            .Select(n => GenerateAsync(path, n, eachFileSize))
+            .Select(n => GenerateFileAsync(path, n, eachFileSize))
             .ToArray();
-        await Task.WhenAll(tasks);
+        return Task.WhenAll(tasks);
     }
 
-    public static async Task GenerateAsync(string path, string name, long size)
+    public static async Task<string> GenerateFileAsync<TLine>(string path, string name, IEnumerable<TLine> collection, long? size = null)
     {
-        var fileStream = File.OpenWrite(Path.Combine(path, Path.ChangeExtension(name, "txt")));
-        var random = new Random();
+        var fullPath = Path.Combine(path, Path.ChangeExtension(name, "txt"));
+        var fileStream = File.OpenWrite(fullPath);
 
-        var timestamp = random.NextInt64(stepSize);
-        for (var i = 0; i < size; i++)
+        var i = 0L;
+        foreach (var userItem in collection)
         {
-            var userItem = UserItemFactory.Create(timestamp);
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(userItem, SerializeType);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(userItem, typeof(TLine));
             await fileStream.WriteAsync(bytes);
             fileStream.WriteByte(EndLineByte);
 
-            if (i % 1000 == 0)
+            if (++i % 1000 == 0)
             {
                 await fileStream.FlushAsync();
-                Console.WriteLine($"file \"{name}\" progress: {i} from {size}");
+                WriteLogString();
             }
-
-            timestamp += random.NextInt64(stepSize);
         }
 
-        Console.WriteLine($"file \"{name}\" progress: {size} from {size}");
         await fileStream.DisposeAsync();
+        return fullPath;
+
+        void WriteLogString()
+        {
+            var progressLogWithoutSize = $"file \"{name}\" progress: {i}";
+            var progressLog = size == null
+                ? progressLogWithoutSize
+                : $"{progressLogWithoutSize} from {size}";
+            Console.WriteLine(progressLog);
+        }
+    }
+
+    private static Task<string> GenerateFileAsync(string path, string name, long size)
+    {
+        return GenerateFileAsync(path, name, GenerateCollection(size), size);
+    }
+
+    private static IEnumerable<UserItem> GenerateCollection(long size)
+    {
+        var random = new Random();
+        var timestamp = 0L;
+
+        for (var i = 0; i < size; i++)
+        {
+            timestamp += random.NextInt64(stepSize);
+            yield return UserItemFactory.Create(timestamp);
+        }
     }
 }
